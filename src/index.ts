@@ -1,13 +1,45 @@
-import express, { Request, Response, NextFunction } from 'express'
+import express from 'express';
+import pool from './db';
+import bodyParser from 'body-parser';
+import usuariosRoutes from './routes/usuarios';
 
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-const app = express(); // Crea una instancia de la aplicación Express.
-const port = 3000; // Define el puerto en el cual el servidor escuchará.
+app.use(bodyParser.json());
+app.use('/usuarios', usuariosRoutes);
 
-app.get('/', (req: Request, res: Response) => {
-    res.send('¡Hola, mundo!'); // Define una ruta GET para la ruta raíz ('/') que envía una respuesta con el mensaje '¡Hola, mundo!'.
+app.get('/db-check', async (req, res) => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW()');
+    res.json({ status: 'Conexión exitosa a la base de datos', time: result.rows[0].now });
+    client.release();
+  } catch (err) {
+    console.error('Error conectando a la base de datos', err);
+    res.status(500).send('Error en la conexión a la base de datos');
+  }
 });
 
-app.listen(port, () => {
-    console.log(`Servidor escuchando en http://localhost:${port}`); // Inicia el servidor y escucha en el puerto especificado. Imprime un mensaje en la consola cuando el servidor está en marcha.
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
+
+app.get('/create-table', async (req, res) => {
+    try {
+      const client = await pool.connect();
+      const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS usuarios (
+          id SERIAL PRIMARY KEY,
+          nombre VARCHAR(100),
+          email VARCHAR(100) UNIQUE
+        );
+      `;
+      await client.query(createTableQuery);
+      res.send('Tabla creada exitosamente');
+      client.release();
+    } catch (err) {
+      console.error('Error creando la tabla', err);
+      res.status(500).send('Error creando la tabla');
+    }
+  });

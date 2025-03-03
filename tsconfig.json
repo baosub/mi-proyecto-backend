@@ -9,5 +9,6 @@
         "outDir": "./dist", //Donde se guardaran los archivos transpilados
         "rootDir": "./src" //Elegimos cual es la carpeta root
     },
-    "include": ["src"]
+    "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
